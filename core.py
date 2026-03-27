@@ -198,8 +198,8 @@ def pairwise_align(
     D_B = nx.from_numpy(D_B_np)
 
     if isinstance(nx,ot.backend.TorchBackend):
-        D_A = D_A.float()
-        D_B = D_B.float()
+        D_A = D_A.double()
+        D_B = D_B.double()
         if use_gpu:
             D_A = D_A.cuda()
             D_B = D_B.cuda()
@@ -289,14 +289,14 @@ def pairwise_align(
             D_A_aug = np.zeros((_ns_aug, _ns_aug), dtype=np.float64)
             D_A_aug[:ns, :ns] = D_A_np
             D_A = nx.from_numpy(D_A_aug)
-            if isinstance(nx, ot.backend.TorchBackend): D_A = D_A.float()
+            if isinstance(nx, ot.backend.TorchBackend): D_A = D_A.double()
 
         if _has_dummy_tgt:
             D_B_np = _to_np(D_B)
             D_B_aug = np.zeros((_nt_aug, _nt_aug), dtype=np.float64)
             D_B_aug[:nt, :nt] = D_B_np
             D_B = nx.from_numpy(D_B_aug)
-            if isinstance(nx, ot.backend.TorchBackend): D_B = D_B.float()
+            if isinstance(nx, ot.backend.TorchBackend): D_B = D_B.double()
 
         M1_np = _to_np(M1)
         M2_np = _to_np(M2)
@@ -383,7 +383,7 @@ def pairwise_align(
             G_init = _gi_aug
         G_init = nx.from_numpy(G_init)
         if isinstance(nx,ot.backend.TorchBackend):
-            G_init = G_init.float()
+            G_init = G_init.double()
             if use_gpu: G_init = G_init.cuda()
 
     if dummy_cell:

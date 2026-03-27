@@ -7,11 +7,10 @@ import numpy as np
 import pandas as pd
 import scipy.sparse as sp
 
-from tqdm import tqdm
 from anndata import AnnData
 from numpy.typing import NDArray
 from typing import Optional, Tuple, Union
-from sklearn.metrics.pairwise import euclidean_distances, cosine_distances
+from sklearn.metrics.pairwise import cosine_distances
 from sklearn.neighbors import radius_neighbors_graph
 from sklearn.preprocessing import OneHotEncoder
 
@@ -72,7 +71,8 @@ def topo_semantic_signatures(slice_obj: AnnData, radius: float, steps: list = [1
 
 def cosine_distance(sliceA, sliceB, sliceA_name, sliceB_name, filePath, use_rep=None, use_gpu=False, nx=ot.backend.NumpyBackend(), beta=0.8, overwrite=False):
     """Original cosine distance function for gene expression."""
-    A_X, B_X = nx.from_numpy(to_dense_array(extract_data_matrix(sliceA,use_rep))), nx.from_numpy(to_dense_array(extract_data_matrix(sliceB,use_rep)))
+    A_X = nx.from_numpy(to_dense_array(extract_data_matrix(sliceA, use_rep)))
+    B_X = nx.from_numpy(to_dense_array(extract_data_matrix(sliceB, use_rep)))
 
     if isinstance(nx,ot.backend.TorchBackend) and use_gpu:
         A_X = A_X.cuda()
@@ -88,9 +88,14 @@ def cosine_distance(sliceA, sliceB, sliceA_name, sliceB_name, filePath, use_rep=
         cosine_dist_gene_expr = np.load(fileName)
     else:
         print("Calculating cosine dist of gene expression for slice A and slice B")
-        if torch.cuda.is_available():
-            s_A = s_A.cpu().detach().numpy()
-            s_B = s_B.cpu().detach().numpy()
+        if isinstance(s_A, torch.Tensor):
+            s_A = s_A.detach().cpu().numpy()
+        else:
+            s_A = np.asarray(s_A)
+        if isinstance(s_B, torch.Tensor):
+            s_B = s_B.detach().cpu().numpy()
+        else:
+            s_B = np.asarray(s_B)
         cosine_dist_gene_expr = cosine_distances(s_A, s_B)
 
         print("Saving cosine dist of gene expression for slice A and slice B")
@@ -113,7 +118,7 @@ def pairwise_align(
     b_distribution = None, 
     norm: bool = False, 
     numItermax: int = 6000, 
-    backend = ot.backend.NumpyBackend(), 
+    backend = ot.backend.TorchBackend(),
     use_gpu: bool = False, 
     return_obj: bool = False,
     verbose: bool = False, 
@@ -145,8 +150,13 @@ def pairwise_align(
                 if gpu_verbose: print("gpu is not available, resorting to torch cpu.")
                 use_gpu = False
         else:
-            print("We currently only have gpu support for Pytorch, please set backend = ot.backend.TorchBackend(). Reverting to selected backend cpu.")
-            use_gpu = False
+            if torch.cuda.is_available():
+                if gpu_verbose:
+                    print("Switching to `ot.backend.TorchBackend()` for GPU execution.")
+                backend = ot.backend.TorchBackend()
+            else:
+                print("We currently only have gpu support for Pytorch, please set backend = ot.backend.TorchBackend(). Reverting to selected backend cpu.")
+                use_gpu = False
     else:
         if gpu_verbose: print("Using selected backend cpu. If you want to use gpu, set use_gpu = True.")
 

@@ -371,7 +371,7 @@ def generic_conditional_gradient_incent(a, b, M1, M2, f, df, reg1, reg2, lp_solv
         Mi = M1 + gamma * M2 + reg1 * df(G)
 
         if not (reg2 is None):
-            Mi = Mi + reg2 * (1 + nx.log(G))
+            Mi = Mi + reg2 * (1 + nx.log(nx.maximum(G, 1e-12)))
         # set M positive
         Mi = Mi + nx.min(Mi)
 
@@ -522,8 +522,11 @@ def kl_divergence_corresponding_backend(X, Y):
 
     nx = ot.backend.get_backend(X,Y)
 
-    X = X/nx.sum(X,axis=1, keepdims=True)
-    Y = Y/nx.sum(Y,axis=1, keepdims=True)
+    eps = 1e-12
+    X = X / nx.sum(X, axis=1, keepdims=True)
+    Y = Y / nx.sum(Y, axis=1, keepdims=True)
+    X = nx.maximum(X, eps)
+    Y = nx.maximum(Y, eps)
     log_X = nx.log(X)
     log_Y = nx.log(Y)
     X_log_X = nx.einsum('ij,ij->i',X,log_X)
@@ -554,8 +557,11 @@ def jensenshannon_distance_1_vs_many_backend(X, Y):
 
     nx = ot.backend.get_backend(X,Y)        # np or torch depending upon gpu availability
     X = nx.concatenate([X] * Y.shape[0], axis=0) # broadcast X
-    X = X/nx.sum(X,axis=1, keepdims=True)   # normalize
-    Y = Y/nx.sum(Y,axis=1, keepdims=True)   # normalize
+    eps = 1e-12
+    X = X / nx.sum(X, axis=1, keepdims=True)   # normalize
+    Y = Y / nx.sum(Y, axis=1, keepdims=True)   # normalize
+    X = nx.maximum(X, eps)
+    Y = nx.maximum(Y, eps)
     M = (X + Y) / 2.0
     kl_X_M = torch.from_numpy(kl_divergence_corresponding_backend(X, M))
     kl_Y_M = torch.from_numpy(kl_divergence_corresponding_backend(Y, M))
@@ -584,8 +590,11 @@ def jensenshannon_divergence_backend(X, Y):
 
     nx = ot.backend.get_backend(X,Y)        
     
-    X = X/nx.sum(X,axis=1, keepdims=True)
-    Y = Y/nx.sum(Y,axis=1, keepdims=True)
+    eps = 1e-12
+    X = X / nx.sum(X, axis=1, keepdims=True)
+    Y = Y / nx.sum(Y, axis=1, keepdims=True)
+    X = nx.maximum(X, eps)
+    Y = nx.maximum(Y, eps)
 
     n = X.shape[0]
     m = Y.shape[0]
